@@ -1,24 +1,23 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Peer from "peerjs";
+import { makeid } from "../js/randomText";
 const Receive = () => {
-  var lastPeerId = null;
-  var peer = null; // Own peer object
-  var peerId = null;
-  var conn = null;
-  var recvId = document.getElementById("receiver-id");
-  var status = document.getElementById("status");
-  var message = document.getElementById("message");
-  var standbyBox = document.getElementById("standby");
-  var goBox = document.getElementById("go");
-  var fadeBox = document.getElementById("fade");
-  var offBox = document.getElementById("off");
-  var sendMessageBox = document.getElementById("sendMessageBox");
+  let lastPeerId = null;
+  let peer = null; // Own peer object
+  let conn = null;
+  const [value, setValue] = useState({
+    recvId: "",
+    status: "",
+    randomText: "aaaa",
+    sendMessageBox: "",
+    message: null,
+  });
   function initialize() {
     // Create own peer object with connection to shared PeerJS server
     peer = new Peer(null, {
       debug: 2,
     });
-
+    console.log({ peer });
     peer.on("open", function (id) {
       // Workaround for peer.reconnect deleting previous id
       if (peer.id === null) {
@@ -27,14 +26,15 @@ const Receive = () => {
       } else {
         lastPeerId = peer.id;
       }
-
-      console.log("ID: " + peer.id);
-      recvId.innerHTML = "ID: " + peer.id;
-      status.innerHTML = "Awaiting connection...";
+      setValue((prev) => ({
+        ...prev,
+        recvId: peer.id,
+        status: "Awaiting connection...",
+      }));
     });
     peer.on("connection", function (c) {
       // Allow only a single connection
-      if (conn && conn.open) {
+      if (conn && conn?.open) {
         c.on("open", function () {
           c.send("Already connected to another client");
           setTimeout(function () {
@@ -45,14 +45,17 @@ const Receive = () => {
       }
 
       conn = c;
+      console.log({ conn });
       console.log("Connected to: " + conn.peer);
-      status.innerHTML = "Connected";
+      setValue((prev) => ({ ...prev, status: "Connected" }));
       ready();
     });
     peer.on("disconnected", function () {
-      status.innerHTML = "Connection lost. Please reconnect";
+      setValue((prev) => ({
+        ...prev,
+        status: "Connection lost. Please reconnect",
+      }));
       console.log("Connection lost. Please reconnect");
-
       // Workaround for peer.reconnect deleting previous id
       peer.id = lastPeerId;
       peer._lastServerId = lastPeerId;
@@ -60,7 +63,10 @@ const Receive = () => {
     });
     peer.on("close", function () {
       conn = null;
-      status.innerHTML = "Connection destroyed. Please refresh";
+      setValue((prev) => ({
+        ...prev,
+        status: "Connection destroyed. Please refresh",
+      }));
       console.log("Connection destroyed");
     });
     peer.on("error", function (err) {
@@ -76,7 +82,7 @@ const Receive = () => {
   function ready() {
     conn.on("data", function (data) {
       console.log("Data recieved");
-      var cueString = '<span class="cueMsg">Cue: </span>';
+      let cueString = '<span className="cueMsg">Cue: </span>';
       switch (data) {
         case "Go":
           go();
@@ -95,53 +101,40 @@ const Receive = () => {
           addMessage(cueString + data);
           break;
         default:
-          addMessage('<span class="peerMsg">Peer: </span>' + data);
+          addMessage('<span className="peerMsg">Peer: </span>' + data);
           break;
       }
     });
     conn.on("close", function () {
-      status.innerHTML = "Connection reset<br>Awaiting connection...";
+      setValue((prev) => ({
+        ...prev,
+        status: "Connection reset<br>Awaiting connection...",
+      }));
       conn = null;
     });
   }
 
   function go() {
-    standbyBox.className = "display-box hidden";
-    goBox.className = "display-box go";
-    fadeBox.className = "display-box hidden";
-    offBox.className = "display-box hidden";
     return;
   }
 
   function fade() {
-    standbyBox.className = "display-box hidden";
-    goBox.className = "display-box hidden";
-    fadeBox.className = "display-box fade";
-    offBox.className = "display-box hidden";
     return;
   }
 
   function off() {
-    standbyBox.className = "display-box hidden";
-    goBox.className = "display-box hidden";
-    fadeBox.className = "display-box hidden";
-    offBox.className = "display-box off";
     return;
   }
 
   function reset() {
-    standbyBox.className = "display-box standby";
-    goBox.className = "display-box hidden";
-    fadeBox.className = "display-box hidden";
-    offBox.className = "display-box hidden";
     return;
   }
 
   function addMessage(msg) {
-    var now = new Date();
-    var h = now.getHours();
-    var m = addZero(now.getMinutes());
-    var s = addZero(now.getSeconds());
+    let now = new Date();
+    let h = now.getHours();
+    let m = addZero(now.getMinutes());
+    let s = addZero(now.getSeconds());
 
     if (h > 12) h -= 12;
     else if (h === 0) h = 12;
@@ -151,30 +144,35 @@ const Receive = () => {
       return t;
     }
 
-    message.innerHTML =
-      '<br><span class="msg-time">' +
-      h +
-      ":" +
-      m +
-      ":" +
-      s +
-      "</span>  -  " +
-      msg +
-      message.innerHTML;
+    let message = (
+      <>
+        {" "}
+        <br />
+        <span className="msg-time">
+          {" "}
+          {h}:{m}:{s}
+        </span>{" "}
+        - {msg} {value.message}
+        <br />
+      </>
+    );
+    setValue((prev) => ({ ...prev, message }));
   }
 
   function clearMessages() {
-    message.innerHTML = "";
+    setValue((prev) => ({ ...prev, message: "" }));
     addMessage("Msgs cleared");
   }
 
   useEffect(() => {
     initialize();
-  }, []);
+  }, [value]);
+
   const onSubmit = () => {
-    if (conn && conn.open) {
-      var msg = sendMessageBox.value;
-      sendMessageBox.value = "";
+    console.log({ conn, a: conn?.open });
+    if (conn && conn?.open) {
+      let msg = value.sendMessageBox;
+      setValue((prev) => ({ ...prev, sendMessageBox: "" }));
       conn.send(msg);
       console.log("Sent: " + msg);
       addMessage('<span class="selfMsg">Self: </span>' + msg);
@@ -182,6 +180,14 @@ const Receive = () => {
       console.log("Connection is closed");
     }
   };
+
+  const randomMess = () => {
+    const randomText = makeid(5);
+    setValue((prev) => ({ ...prev, sendMessageBox: randomText, randomText }));
+  };
+
+  const handleChangeMessageBox = (event) =>
+    setValue((prev) => ({ ...prev, sendMessageBox: event.target.value }));
   return (
     <div>
       <table className="display">
@@ -197,16 +203,24 @@ const Receive = () => {
                 style={{ fontWeight: "bold" }}
                 title="Copy this ID to the input on send.html."
               >
-                ID:
+                ID: {value.recvId}
               </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(value.recvId)}
+              >
+                copy
+              </button>
             </td>
             <td>
+              <button onClick={randomMess}>make random</button>
               <form onSubmit={onSubmit}>
                 <input
                   type="text"
                   id="sendMessageBox"
                   placeholder="Enter a message..."
-                  autofocus="true"
+                  autoFocus
+                  value={value.sendMessageBox}
+                  onChange={handleChangeMessageBox}
                 />
                 <button type="button" onClick={onSubmit} id="sendButton">
                   Send
@@ -223,10 +237,12 @@ const Receive = () => {
           </tr>
           <tr>
             <td>
-              <div id="status" className="status" />
+              <div id="status" className="status" /> {value.status}
             </td>
             <td>
-              <div className="message" id="message" />
+              <div className="message" id="message">
+                {value?.message}
+              </div>
             </td>
           </tr>
           <tr>
