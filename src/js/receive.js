@@ -1,7 +1,6 @@
 (function () {
   var lastPeerId = null;
   var peer = null; // Own peer object
-  var peerId = null;
   var conn = null;
   var recvId = document.getElementById("receiver-id");
   var status = document.getElementById("status");
