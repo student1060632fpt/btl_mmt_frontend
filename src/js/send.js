@@ -132,18 +132,7 @@
       }
   }
 
-  goButton.addEventListener('click', function () {
-      signal("Go");
-  });
-  resetButton.addEventListener('click', function () {
-      signal("Reset");
-  });
-  fadeButton.addEventListener('click', function () {
-      signal("Fade");
-  });
-  offButton.addEventListener('click', function () {
-      signal("Off");
-  });
+
 
   function addMessage(msg) {
       var now = new Date();
